@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WaterWatch Westchester — Your Results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=DM+Mono:wght@400;500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ink:#0d1b0f;--paper:#f4f1eb;--water:#1a4a6e;--water-light:#2e7ab8;--danger:#8b2020;--danger-light:#c0392b;--warn:#7a4a00;--warn-light:#e67e22;--safe:#1a5c2e;--safe-light:#27ae60;--border:rgba(13,27,15,0.12);}
+html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--paper);color:var(--ink);overflow:hidden;}
+#layout{display:grid;grid-template-columns:1fr 380px;grid-template-rows:56px 1fr;height:100vh;}
+.topbar{grid-column:span 2;padding:0 2rem;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);}
+.topbar-logo{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.topbar-loc{font-size:13px;opacity:0.6;font-family:'DM Mono',monospace;}
+.topbar-back{font-size:12px;opacity:0.6;cursor:pointer;background:none;border:1px solid rgba(255,255,255,0.2);color:inherit;padding:6px 14px;border-radius:4px;font-family:'Nunito',sans-serif;transition:opacity 0.2s;text-decoration:none;}
+.topbar-back:hover{opacity:1}
+#map-container{grid-row:2;grid-column:1;position:relative;}
+#map{width:100%;height:100%;}
+.map-legend{position:absolute;bottom:20px;left:20px;z-index:1000;background:rgba(244,241,235,0.96);border:1px solid var(--border);border-radius:6px;padding:12px 14px;backdrop-filter:blur(4px);}
+.legend-title{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;color:var(--ink)}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:5px;color:var(--ink)}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+#sidebar{grid-row:2;grid-column:2;background:var(--paper);border-left:1px solid var(--border);overflow-y:auto;height:calc(100vh - 56px);}
+.sb{padding:1.5rem}
+.score-hero{border-radius:8px;padding:1.5rem;margin-bottom:1.5rem;text-align:center;border:2px solid;}
+.score-hero.high{background:#fdf0ef;border-color:#e8a09a}
+.score-hero.medium{background:#fdf6ec;border-color:#f0c080}
+.score-hero.low{background:#edfbf0;border-color:#90d9a8}
+.score-big{font-family:'Playfair Display',serif;font-size:72px;font-weight:600;line-height:1;margin-bottom:4px;}
+.score-big.high{color:var(--danger-light)}.score-big.medium{color:var(--warn-light)}.score-big.low{color:var(--safe-light)}
+.score-tier{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.score-tier.high{color:var(--danger)}.score-tier.medium{color:var(--warn)}.score-tier.low{color:var(--safe)}
+.score-summary{font-size:12px;line-height:1.6;color:rgba(13,27,15,0.65)}
+.sec-title{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(13,27,15,0.4);margin-bottom:10px;}
+.sec-block{margin-bottom:1.5rem}
+.factor-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;}
+.factor-label{flex:1;color:var(--ink)}
+.factor-track{width:80px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.factor-fill{height:100%;border-radius:3px;transition:width 0.9s ease}
+.factor-val{font-family:'DM Mono',monospace;font-size:10px;color:rgba(13,27,15,0.45);min-width:28px;text-align:right}
+.nearby-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.nearby-tag{font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(26,74,110,0.08);color:var(--water);font-weight:500;border:1px solid rgba(26,74,110,0.15);}
+.nearby-tag.bad{background:rgba(139,32,32,0.08);color:var(--danger);border-color:rgba(139,32,32,0.15)}
+.res-cards{display:flex;flex-direction:column;gap:8px}
+.res-card{border:1px solid var(--border);border-radius:6px;padding:12px;background:var(--paper);transition:border-color 0.2s;}
+.res-card:hover{border-color:var(--water)}
+.res-card.primary{border-color:var(--water);background:#f0f6fc}
+.res-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
+.res-name{font-size:13px;font-weight:600;color:var(--ink)}
+.res-tag{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:600;letter-spacing:0.5px}
+.tag-pro{background:#ede8fc;color:#5e35b1}.tag-home{background:#fff3e0;color:#e65100}.tag-free{background:#e8f5e9;color:#1b5e20}
+.res-desc{font-size:11px;color:rgba(13,27,15,0.55);line-height:1.5;margin-bottom:6px}
+.res-meta{font-size:10px;font-family:'DM Mono',monospace;color:rgba(13,27,15,0.4)}
+.res-link{font-size:11px;color:var(--water-light);font-weight:600;text-decoration:none}
+.res-link:hover{text-decoration:underline}
+.survey-box{background:var(--ink);border-radius:8px;padding:1.25rem;text-align:center;margin-bottom:1.5rem;}
+.survey-box p{font-size:13px;color:rgba(244,241,235,0.7);margin-bottom:10px;line-height:1.5}
+.survey-btn{display:inline-flex;align-items:center;gap:8px;background:#f4f1eb;color:#0d1b0f;padding:11px 22px;border-radius:5px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:0.3px;}
+.disclaimer{font-size:10px;color:rgba(13,27,15,0.35);line-height:1.6;padding-top:1rem;border-top:1px solid var(--border);margin-top:1rem;}
+@media(max-width:900px){#layout{grid-template-columns:1fr;grid-template-rows:56px auto auto;overflow:auto;}body{overflow:auto}#map-container{min-height:320px;}#sidebar{height:auto;border-left:none;border-top:1px solid var(--border);}#map{min-height:320px;}}
+@keyframes pulse{0%{transform:scale(0.5);opacity:0.8}100%{transform:scale(1.5);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="layout">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--water-light);display:inline-block"></span>
+      WaterWatch Westchester
+    </div>
+    <div class="topbar-loc" id="topbar-loc">—</div>
+    <a class="topbar-back" href="tool.html">← New search</a>
+  </div>
+  <div id="map-container">
+    <div id="map"></div>
+    <div class="map-legend">
+      <div class="legend-title">Risk Layers</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#c0392b"></div>Known PFAS site</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#e67e22"></div>Potential source</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#2e7ab8"></div>Water body</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#8e44ad;opacity:0.7"></div>Your location</div>
+    </div>
+  </div>
+  <div id="sidebar"><div class="sb" id="sidebar-content"></div></div>
+</div>
+
+<script>
+const raw = sessionStorage.getItem('wwResult');
+if(!raw){ window.location.href='tool.html'; }
+const d = JSON.parse(raw);
+
+document.getElementById('topbar-loc').textContent = d.address.split(',').slice(0,2).join(',');
+
+// MAP
+const PFAS_SITES=[
+  {name:'Pound Ridge Industrial Site',lat:41.2101,lng:-73.5785,severity:'high',type:'Industrial discharge'},
+  {name:'Bedford Hills Contamination Zone',lat:41.2401,lng:-73.6998,severity:'high',type:'Historic AFFF use'},
+  {name:'Westchester County Airport (AFFF)',lat:41.0673,lng:-73.7076,severity:'high',type:'Airport AFFF foam'},
+  {name:'Yorktown Former Industrial',lat:41.2959,lng:-73.7887,severity:'medium',type:'Former manufacturing'},
+  {name:'Peekskill Industrial District',lat:41.2926,lng:-73.9196,severity:'medium',type:'Industrial discharge'},
+  {name:'New Castle Dry Cleaner Cluster',lat:41.1537,lng:-73.7715,severity:'medium',type:'PCE/PFAS dry cleaning'},
+  {name:'Somers Landfill Area',lat:41.3298,lng:-73.7090,severity:'medium',type:'Historic landfill'},
+  {name:'Cortlandt Military Site',lat:41.3215,lng:-73.9100,severity:'medium',type:'Former military use'},
+  {name:'Lewisboro Industrial Zone',lat:41.2632,lng:-73.5854,severity:'low',type:'Light industrial'},
+  {name:'Ossining WWTP Discharge',lat:41.1626,lng:-73.8671,severity:'low',type:'Wastewater discharge'},
+  {name:'North Salem Golf Course',lat:41.3415,lng:-73.6098,severity:'low',type:'Pesticide/PFAS turf'},
+  {name:'Mount Kisco Former Dry Cleaner',lat:41.2026,lng:-73.7271,severity:'low',type:'PCE/PFAS site'},
+];
+const WATER_BODIES=[
+  {name:'Cross River Reservoir',lat:41.2617,lng:-73.5945},{name:'Kensico Reservoir',lat:41.0748,lng:-73.7532},
+  {name:'Muscoot Reservoir',lat:41.3232,lng:-73.6748},{name:'Titicus Reservoir',lat:41.3487,lng:-73.6015},
+  {name:'Hudson River',lat:41.1500,lng:-73.9200},{name:'Byram River',lat:41.0626,lng:-73.6293},
+];
+function distKm(a,b,c,e){const R=6371,dL=(c-a)*Math.PI/180,dN=(e-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dN/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+const map = L.map('map').setView([d.lat,d.lng],12);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
+
+const userIcon=L.divIcon({html:`<div style="width:16px;height:16px;background:#8e44ad;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
+L.marker([d.lat,d.lng],{icon:userIcon}).bindPopup(`<strong>Your location</strong><br><small>${d.address.split(',').slice(0,2).join(',')}</small>`).addTo(map);
+const pulseIcon=L.divIcon({html:`<div style="width:60px;height:60px;border:2px solid rgba(142,68,173,0.4);border-radius:50%;animation:pulse 2s ease-out infinite;margin-left:-22px;margin-top:-22px"></div>`,iconSize:[60,60],iconAnchor:[30,30],className:''});
+L.marker([d.lat,d.lng],{icon:pulseIcon,zIndexOffset:-10}).addTo(map);
+
+PFAS_SITES.forEach(s=>{
+  const cols={high:'#c0392b',medium:'#e67e22',low:'#f39c12'},col=cols[s.severity];
+  const dist=distKm(d.lat,d.lng,s.lat,s.lng),r=dist<3?12:dist<8?9:7;
+  const icon=L.divIcon({html:`<div style="width:${r*2}px;height:${r*2}px;background:${col};opacity:0.82;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`,iconSize:[r*2,r*2],iconAnchor:[r,r],className:''});
+  L.marker([s.lat,s.lng],{icon}).bindPopup(`<strong>${s.name}</strong><br><small>${s.type}</small><br><small style="color:${col};font-weight:600">${s.severity.toUpperCase()} severity · ${dist.toFixed(1)} km away</small>`).addTo(map);
+});
+WATER_BODIES.forEach(w=>{
+  const icon=L.divIcon({html:`<div style="width:10px;height:10px;background:#2e7ab8;opacity:0.7;border:2px solid white;border-radius:50%"></div>`,iconSize:[10,10],iconAnchor:[5,5],className:''});
+  L.marker([w.lat,w.lng],{icon}).bindPopup(`<strong>${w.name}</strong>`).addTo(map);
+});
+const rColors={high:'#c0392b',medium:'#e67e22',low:'#27ae60'};
+L.circle([d.lat,d.lng],{radius:5000,color:rColors[d.level],fillColor:rColors[d.level],fillOpacity:0.05,weight:1.5,dashArray:'6 4'}).addTo(map);
+
+// SIDEBAR
+const labels={high:'HIGH RISK',medium:'MODERATE RISK',low:'LOW RISK'};
+const summaries={
+  high:'Your location shows elevated PFAS contamination risk based on proximity to known sites, water source type, and surrounding land use. Professional testing is strongly recommended.',
+  medium:'Your property has moderate PFAS risk factors. At-home screening is a practical first step. If results show any detection, escalate to certified lab testing.',
+  low:'Your risk profile is relatively low. No area of Westchester is entirely free from PFAS, but standard precautions and annual monitoring should suffice for now.'
+};
+const barColor={high:'#c0392b',medium:'#e67e22',low:'#27ae60'};
+const maxes={pfasSites:35,waterSource:25,homeAge:12,nearbyUses:20,watershed:8};
+const fLabels={pfasSites:'PFAS site proximity',waterSource:'Water source risk',homeAge:'Property age factor',nearbyUses:'Nearby land uses',watershed:'Watershed exposure'};
+const nearbyTagsHtml=(d.nearby&&d.nearby.length&&d.nearby[0]!=='none')?d.nearby.map(n=>`<span class="nearby-tag bad">${n}</span>`).join(''):'<span class="nearby-tag">None identified</span>';
+
+const allRes={
+  high:[
+    {name:'NYS DOH PFAS Testing Program',tag:'Professional',tagClass:'tag-pro',desc:'Certified testing for private well owners. Covers PFOA, PFOS, and 14 additional PFAS.',cost:'Free–$350',turnaround:'3–4 weeks',url:'https://www.health.ny.gov/environmental/water/drinking/pfoa_pfos/'},
+    {name:'Eurofins / TestAmerica Lab',tag:'Professional',tagClass:'tag-pro',desc:'Accredited environmental laboratory, full PFAS-40 panel. Recommended for Bedford/Pound Ridge.',cost:'$200–$450',turnaround:'10–15 days',url:'https://www.eurofinsus.com/environment-testing/'},
+    {name:'Westchester County Health Dept',tag:'Free Consult',tagClass:'tag-free',desc:'Free guidance and testing referrals for concerned residents.',cost:'Free',turnaround:'Same week',url:'https://health.westchestergov.com/environmental-health/drinking-water'},
+    {name:"Can't test yet? Certified filtration",tag:'Interim',tagClass:'tag-home',desc:"NSF/ANSI 58-certified reverse osmosis filters remove up to 95% of PFAS. An under-sink RO system is the most effective interim step while awaiting lab results.",cost:'$150–$400 installed',turnaround:'Immediate protection',url:'https://www.ewg.org/tapwater/reviewed-filters.php'},
+  ],
+  medium:[
+    {name:'Tap Score Home Testing Kit',tag:'At-Home',tagClass:'tag-home',desc:'Mail-in kit screening 40+ PFAS compounds. Certified lab analysis included.',cost:'$149–$249',turnaround:'5–7 days',url:'https://mytapscore.com/'},
+    {name:'SimpleLab PFAS Check',tag:'At-Home',tagClass:'tag-home',desc:'Consumer screening kit for PFOA/PFOS and GenX. Results via online portal.',cost:'$99–$179',turnaround:'7–10 days',url:'https://gosimplelab.com/'},
+    {name:'NYS Drinking Water Watch',tag:'Free',tagClass:'tag-free',desc:'Check public water system monitoring data for your area.',cost:'Free',turnaround:'Instant',url:'https://health.ny.gov/environmental/water/drinking/'},
+  ],
+  low:[
+    {name:'EWG Tap Water Database',tag:'Free',tagClass:'tag-free',desc:'Enter your ZIP to see utility-reported contaminants in your public water supply.',cost:'Free',turnaround:'Instant',url:'https://www.ewg.org/tapwater/'},
+    {name:'NSF-Certified Filter Guide',tag:'Prevention',tagClass:'tag-free',desc:"EWG's guide to certified pitcher and tap filters that reduce PFAS by 50–80%.",cost:'$30–$80',turnaround:'Immediate',url:'https://www.ewg.org/tapwater/reviewed-filters.php'},
+    {name:'Annual Water Quality Report',tag:'Free',tagClass:'tag-free',desc:'Request your Consumer Confidence Report from your municipal supplier.',cost:'Free',turnaround:'Annual',url:'https://www.epa.gov/ccr'},
+  ]
+};
+const resources=allRes[d.level];
+
+document.getElementById('sidebar-content').innerHTML=`
+  <div class="score-hero ${d.level}">
+    <div class="score-big ${d.level}">${d.score}</div>
+    <div class="score-tier ${d.level}">${labels[d.level]}</div>
+    <div class="score-summary">${summaries[d.level]}</div>
+  </div>
+  <div class="sec-block">
+    <div class="sec-title">Score Breakdown</div>
+    ${Object.entries(d.factors).map(([k,v])=>`
+      <div class="factor-row">
+        <span class="factor-label">${fLabels[k]||k}</span>
+        <div class="factor-track"><div class="factor-fill" style="width:0%;background:${barColor[d.level]}" data-w="${Math.min(100,Math.round(v/maxes[k]*100))}"></div></div>
+        <span class="factor-val">${v}/${maxes[k]}</span>
+      </div>`).join('')}
+  </div>
+  <div class="sec-block">
+    <div class="sec-title">Closest Known PFAS Site</div>
+    <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:3px">${d.closestSite?d.closestSite.name:'—'}</div>
+    <div style="font-size:12px;color:rgba(13,27,15,0.5)">${d.closestSite?d.closestSite.type+' · '+d.closestDist+' km away':''}</div>
+  </div>
+  <div class="sec-block">
+    <div class="sec-title">Flagged Nearby Uses</div>
+    <div class="nearby-tags">${nearbyTagsHtml}</div>
+  </div>
+  <div class="sec-block">
+    <div class="sec-title">Recommended Resources</div>
+    <div class="res-cards">
+      ${resources.map((r,i)=>`
+        <div class="res-card ${i===0?'primary':''}">
+          <div class="res-card-top"><span class="res-name">${r.name}</span><span class="res-tag ${r.tagClass}">${r.tag}</span></div>
+          <div class="res-desc">${r.desc}</div>
+          <div class="res-meta">${r.cost} · ${r.turnaround}</div>
+          <a href="${r.url}" target="_blank" class="res-link">Visit resource →</a>
+        </div>`).join('')}
+    </div>
+  </div>
+  <div class="survey-box">
+    <p>Took action afterwards? Let us know to help improve WaterWatch!</p>
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfc8v7Fo6jHAS7cF-7Y-ssghJyCTAAJlWpG3oNtQ72LTMNZ6w/viewform" target="_blank" class="survey-btn">I tested my water!</a>
+  </div>
+  <div class="disclaimer">WaterWatch Westchester provides risk estimates based on publicly available geospatial data. This tool is not a substitute for certified laboratory water testing. Data sources: NYS DEC, USEPA ECHO, USGS NHD, Westchester County GIS.</div>
+`;
+
+setTimeout(()=>{
+  document.querySelectorAll('.factor-fill').forEach(el=>{
+    el.style.transition='width 0.9s ease';el.style.width=el.dataset.w+'%';
+  });
+},200);
+</script>
+</body>
+</html>
