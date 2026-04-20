@@ -32,8 +32,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1rem 2.5rem;display:
 .chip:hover{border-color:var(--water);color:var(--water)}
 .chip.on{background:var(--water);border-color:var(--water);color:#fff}
 .chip.multi.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.addr-row{display:flex;gap:8px}
+.addr-input{flex:1;padding:13px 16px;border:1.5px solid var(--border-strong);border-radius:6px;font-size:15px;font-family:'Nunito',sans-serif;background:var(--paper);color:var(--ink);outline:none;transition:border-color 0.2s;}
+.addr-input:focus{border-color:var(--water)}
+.addr-btn{padding:13px 18px;background:var(--water);color:#fff;border:none;border-radius:6px;font-size:13px;font-family:'Nunito',sans-serif;font-weight:600;cursor:pointer;white-space:nowrap;transition:background 0.2s;}
+.addr-btn:hover{background:var(--water-light)}
+.addr-btn:disabled{opacity:0.5;cursor:not-allowed}
 .geocode-result{margin-top:10px;font-size:13px;padding:10px 14px;border-radius:6px;border:1px solid;display:none;}
 .geocode-result.ok{background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20}
+.geocode-result.err{background:#fce8e8;border-color:#ef9a9a;color:#b71c1c}
+.divider{display:flex;align-items:center;gap:12px;margin:1.5rem 0;font-size:12px;color:rgba(13,27,15,0.35);font-weight:500;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+#fallback-block{display:none}
 .analyze-btn{width:100%;padding:16px;background:var(--ink);color:var(--paper);border:none;border-radius:6px;font-size:15px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;letter-spacing:0.5px;transition:background 0.2s;margin-top:1rem;}
 .analyze-btn:hover{background:var(--water)}
 .analyze-btn:disabled{opacity:0.3;cursor:not-allowed}
@@ -67,7 +77,19 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1rem 2.5rem;display:
   <div class="tool-form">
 
     <div class="form-block">
-      <label class="form-label">Your municipality</label>
+      <label class="form-label">Your address</label>
+      <div class="addr-row">
+        <input type="text" class="addr-input" id="address-input" placeholder="e.g. 482 Guard Hill Road, Bedford, NY" />
+        <button class="addr-btn" id="locate-btn" onclick="geocodeAddress()">Locate →</button>
+      </div>
+      <div class="geocode-result" id="geocode-result"></div>
+      <div class="form-hint">Type your street address and click Locate. Must be within Westchester County.</div>
+    </div>
+
+    <div id="fallback-block">
+      <div class="divider">or pick manually if address lookup fails</div>
+      <div class="form-block">
+        <label class="form-label">Your municipality</label>
       <div class="select-wrap">
         <select class="select-styled" id="town-select" onchange="townChanged()">
           <option value="">Select your town or village…</option>
@@ -93,8 +115,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1rem 2.5rem;display:
     <div class="form-block" id="neighborhood-block" style="display:none">
       <label class="form-label">Neighborhood / area <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--water)">(narrows your score)</span></label>
       <div class="chip-grid" id="neighborhood-chips"></div>
-      <div class="geocode-result ok" id="geocode-result" style="display:none"></div>
+      <div class="geocode-result ok" id="fallback-result" style="display:none"></div>
     </div>
+    </div><!-- end fallback-block -->
 
     <div class="form-block">
       <label class="form-label">Primary water source</label>
@@ -193,18 +216,56 @@ const NEIGHBORHOODS = {
   'mount-kisco':[{label:'Mount Kisco center',lat:41.2026,lng:-73.7271},{label:'Bedford Hills',lat:41.2401,lng:-73.6998}],
 };
 
+async function geocodeAddress(){
+  const addr = document.getElementById('address-input').value.trim();
+  if(!addr) return;
+  const btn = document.getElementById('locate-btn');
+  const resultEl = document.getElementById('geocode-result');
+  btn.disabled = true; btn.textContent = 'Locating…';
+  resultEl.style.display = 'block';
+  resultEl.className = 'geocode-result';
+  resultEl.textContent = 'Searching…';
+  try {
+    const q = encodeURIComponent(addr + ', Westchester County, New York');
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1&countrycodes=us&viewbox=-74.1,40.9,-73.5,41.4&bounded=1`);
+    const data = await res.json();
+    if(!data.length) throw new Error('not found');
+    const {lat, lon, display_name} = data[0];
+    appState.lat = parseFloat(lat);
+    appState.lng = parseFloat(lon);
+    appState.address = display_name;
+    resultEl.className = 'geocode-result ok';
+    resultEl.textContent = '✓ Located: ' + display_name.split(',').slice(0,3).join(',');
+    document.getElementById('fallback-block').style.display = 'none';
+    formChanged();
+  } catch(e) {
+    resultEl.className = 'geocode-result err';
+    resultEl.textContent = '✗ Address not found in Westchester. Use the manual picker below.';
+    document.getElementById('fallback-block').style.display = 'block';
+    appState.lat = null; appState.address = '';
+    formChanged();
+  }
+  btn.disabled = false; btn.textContent = 'Locate →';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('address-input').addEventListener('keydown', e => {
+    if(e.key === 'Enter') geocodeAddress();
+  });
+});
+
 function townChanged(){
   const val = document.getElementById('town-select').value;
   const block = document.getElementById('neighborhood-block');
   const chipsEl = document.getElementById('neighborhood-chips');
-  const resultEl = document.getElementById('geocode-result');
+  const resultEl = document.getElementById('fallback-result');
   if(!val){block.style.display='none';appState.lat=null;formChanged();return;}
   const town = TOWNS[val];
   const hoods = NEIGHBORHOODS[val]||[];
   chipsEl.innerHTML = hoods.map(h=>`<button class="chip" data-lat="${h.lat}" data-lng="${h.lng}" data-label="${h.label}" onclick="selectNeighborhood(this)">${h.label}</button>`).join('');
   block.style.display='block';
   appState.lat=town.lat; appState.lng=town.lng; appState.address=town.label+', Westchester County, NY';
-  resultEl.style.display='block'; resultEl.textContent='✓ Located: '+town.label;
+  resultEl.style.display='block'; resultEl.className='geocode-result ok'; resultEl.textContent='✓ Located: '+town.label;
   formChanged();
 }
 
@@ -213,7 +274,7 @@ function selectNeighborhood(el){
   el.classList.add('on');
   appState.lat=parseFloat(el.dataset.lat); appState.lng=parseFloat(el.dataset.lng);
   appState.address=el.dataset.label+', '+TOWNS[document.getElementById('town-select').value].label+', NY';
-  document.getElementById('geocode-result').textContent='✓ Located: '+appState.address;
+  const fr=document.getElementById('fallback-result'); fr.style.display='block'; fr.className='geocode-result ok'; fr.textContent='✓ Located: '+appState.address;
   formChanged();
 }
 
