@@ -216,6 +216,23 @@ const NEIGHBORHOODS = {
   'mount-kisco':[{label:'Mount Kisco center',lat:41.2026,lng:-73.7271},{label:'Bedford Hills',lat:41.2401,lng:-73.6998}],
 };
 
+// Westchester County bounding box (with a small buffer on all sides)
+const WC_BOUNDS = { minLat: 40.87, maxLat: 41.42, minLng: -74.05, maxLng: -73.45 };
+
+function inWestchester(lat, lng) {
+  return lat >= WC_BOUNDS.minLat && lat <= WC_BOUNDS.maxLat &&
+         lng >= WC_BOUNDS.minLng && lng <= WC_BOUNDS.maxLng;
+}
+
+async function nominatimSearch(query, bounded) {
+  const viewbox = `-74.05,40.87,-73.45,41.42`;
+  const boundedParam = bounded ? '&bounded=1' : '';
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=us&viewbox=${viewbox}${boundedParam}&addressdetails=1`;
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  if (!res.ok) throw new Error('network');
+  return res.json();
+}
+
 async function geocodeAddress(){
   const addr = document.getElementById('address-input').value.trim();
   if(!addr) return;
@@ -225,26 +242,53 @@ async function geocodeAddress(){
   resultEl.style.display = 'block';
   resultEl.className = 'geocode-result';
   resultEl.textContent = 'Searching…';
+
   try {
-    const q = encodeURIComponent(addr + ', Westchester County, New York');
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1&countrycodes=us&viewbox=-74.1,40.9,-73.5,41.4&bounded=1`);
-    const data = await res.json();
-    if(!data.length) throw new Error('not found');
-    const {lat, lon, display_name} = data[0];
-    appState.lat = parseFloat(lat);
-    appState.lng = parseFloat(lon);
-    appState.address = display_name;
+    let chosen = null;
+
+    // Strategy 1: address + "Westchester County, New York", bounded to viewbox
+    const queries = [
+      addr + ', Westchester County, New York',
+      addr + ', New York',   // fallback without county (catches hamlets Nominatim doesn't know by county)
+      addr,                  // bare address last resort
+    ];
+
+    for (let i = 0; i < queries.length && !chosen; i++) {
+      const bounded = i === 0; // only bound on first attempt
+      let results;
+      try { results = await nominatimSearch(queries[i], bounded); }
+      catch(netErr) {
+        resultEl.className = 'geocode-result err';
+        resultEl.textContent = '✗ Network error — please check your connection and try again.';
+        btn.disabled = false; btn.textContent = 'Locate →';
+        return;
+      }
+
+      // Pick the first result that falls inside Westchester's bounding box
+      for (const r of results) {
+        const rlat = parseFloat(r.lat), rlng = parseFloat(r.lon);
+        if (inWestchester(rlat, rlng)) { chosen = r; break; }
+      }
+    }
+
+    if (!chosen) throw new Error('not found');
+
+    appState.lat = parseFloat(chosen.lat);
+    appState.lng = parseFloat(chosen.lon);
+    appState.address = chosen.display_name;
     resultEl.className = 'geocode-result ok';
-    resultEl.textContent = '✓ Located: ' + display_name.split(',').slice(0,3).join(',');
+    resultEl.textContent = '✓ Located: ' + chosen.display_name.split(',').slice(0,3).join(',');
     document.getElementById('fallback-block').style.display = 'none';
     formChanged();
+
   } catch(e) {
     resultEl.className = 'geocode-result err';
-    resultEl.textContent = '✗ Address not found in Westchester. Use the manual picker below.';
+    resultEl.textContent = '✗ Address not found in Westchester. Try a nearby intersection, or use the manual picker below.';
     document.getElementById('fallback-block').style.display = 'block';
     appState.lat = null; appState.address = '';
     formChanged();
   }
+
   btn.disabled = false; btn.textContent = 'Locate →';
 }
 
