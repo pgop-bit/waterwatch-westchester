@@ -153,23 +153,34 @@ const nearbyTagsHtml=(d.nearby&&d.nearby.length&&d.nearby[0]!=='none')?d.nearby.
 
 const allRes={
   high:[
-    {name:'NYS DOH PFAS Testing Program',tag:'Professional',tagClass:'tag-pro',desc:'Certified testing for private well owners. Covers PFOA, PFOS, and 14 additional PFAS.',cost:'Free–$350',turnaround:'3–4 weeks',url:'https://www.health.ny.gov/environmental/water/drinking/pfoa_pfos/'},
-    {name:'Eurofins / TestAmerica Lab',tag:'Professional',tagClass:'tag-pro',desc:'Accredited environmental laboratory, full PFAS-40 panel. Recommended for Bedford/Pound Ridge.',cost:'$200–$450',turnaround:'10–15 days',url:'https://www.eurofinsus.com/environment-testing/'},
-    {name:'Westchester County Health Dept',tag:'Free Consult',tagClass:'tag-free',desc:'Free guidance and testing referrals for concerned residents.',cost:'Free',turnaround:'Same week',url:'https://health.westchestergov.com/environmental-health/drinking-water'},
-    {name:"Can't test yet? Certified filtration",tag:'Interim',tagClass:'tag-home',desc:"NSF/ANSI 58-certified reverse osmosis filters remove up to 95% of PFAS. An under-sink RO system is the most effective interim step while awaiting lab results.",cost:'$150–$400 installed',turnaround:'Immediate protection',url:'https://www.ewg.org/tapwater/reviewed-filters.php'},
+    {name:'Westchester County PFAS Rebate Pilot Program',tag:'Professional',tagClass:'tag-pro',desc:'Certified testing for private well owners. Covers PFOA, PFOS, and 14 additional PFAS.',cost:'Free–$350',turnaround:'3–4 weeks',url:'https://www.health.ny.gov/environmental/water/drinking/privatewellspilot/'},
+    {name:'Contact the Health Dept (24-hr Public Health Line)',tag:'Free Consult',tagClass:'tag-free',desc:'Contact the Health Department for further concerns, guidance, or testing.',cost:'Free',turnaround:'Same week',url:'https://health.westchestercountyny.gov/health-contacts/overview'},
   ],
   medium:[
-    {name:'Tap Score Home Testing Kit',tag:'At-Home',tagClass:'tag-home',desc:'Mail-in kit screening 40+ PFAS compounds. Certified lab analysis included.',cost:'$149–$249',turnaround:'5–7 days',url:'https://mytapscore.com/'},
-    {name:'SimpleLab PFAS Check',tag:'At-Home',tagClass:'tag-home',desc:'Consumer screening kit for PFOA/PFOS and GenX. Results via online portal.',cost:'$99–$179',turnaround:'7–10 days',url:'https://gosimplelab.com/'},
-    {name:'NYS Drinking Water Watch',tag:'Free',tagClass:'tag-free',desc:'Check public water system monitoring data for your area.',cost:'Free',turnaround:'Instant',url:'https://health.ny.gov/environmental/water/drinking/'},
+    {name:'Westchester County PFAS Rebate Pilot Program',tag:'Professional',tagClass:'tag-pro',desc:'Certified testing for private well owners. Covers PFOA, PFOS, and 14 additional PFAS.',cost:'Free–$350',turnaround:'3–4 weeks',url:'https://www.health.ny.gov/environmental/water/drinking/privatewellspilot/'},
+    {name:'NSF-Certified Filter Guide',tag:'Prevention',tagClass:'tag-free',desc:"EWG's filter guide helps you choose the best tap filters that help mitigate pollutants and PFAS.",cost:'$30–$80',turnaround:'Immediate',url:'https://www.ewg.org/research/getting-forever-chemicals-out-drinking-water-ewgs-guide-pfas-water-filters'},
+    {name:'Know your NY Water',tag:'Free',tagClass:'tag-free',desc:'Check public water system monitoring data for your area.',cost:'Free',turnaround:'Instant',url:'https://water.ny.gov/doh7/waterqual/#/home'},
   ],
   low:[
-    {name:'EWG Tap Water Database',tag:'Free',tagClass:'tag-free',desc:'Enter your ZIP to see utility-reported contaminants in your public water supply.',cost:'Free',turnaround:'Instant',url:'https://www.ewg.org/tapwater/'},
-    {name:'NSF-Certified Filter Guide',tag:'Prevention',tagClass:'tag-free',desc:"EWG's guide to certified pitcher and tap filters that reduce PFAS by 50–80%.",cost:'$30–$80',turnaround:'Immediate',url:'https://www.ewg.org/tapwater/reviewed-filters.php'},
-    {name:'Annual Water Quality Report',tag:'Free',tagClass:'tag-free',desc:'Request your Consumer Confidence Report from your municipal supplier.',cost:'Free',turnaround:'Annual',url:'https://www.epa.gov/ccr'},
+    {name:'EWG Tap Water Database',tag:'Free',tagClass:'tag-free',desc:'Find out what pollutants might be of concern in your tap water, based on your ZIP code.',cost:'Free',turnaround:'Instant',url:'https://www.ewg.org/tapwater/'},
+    {name: 'Invest in Sustainable Water Bottles!', tag: 'Investments', tagClass: 'tag-home', desc: 'Reusable water bottles from sustainable brands such as Nalgene, can increase your reliance on tap water and reduce the use of single-use plastic bottles as well as reduce your carbon footprint.', cost: '$17–$40', turnaround: 'Immediate', url: 'https://nalgene.com/'},
+    {name:'Annual Water Quality Reports',tag:'Free',tagClass:'tag-free',desc:'Public annual water quality reports provide a full breakdown of water contaminants and crises that year.',cost:'Free',turnaround:'Annual',url:'https://www.health.ny.gov/environmental/water/drinking/annual_water_quality_report/'},
   ]
 };
 const resources=allRes[d.level];
+
+const nycdepNote = (d.isNYCDEP && d.waterSource === 'municipal') ? `
+  <div style="background:#e8f4fd;border:1px solid #90caf9;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:12px;line-height:1.6;color:#1a3a5c;">
+    <strong style="display:block;margin-bottom:4px;font-size:13px;"> NYC DEP Aqueduct Water Detected</strong>
+    Your address is in a town that is served by the NYC Department of Environmental Protection aqueduct system
+    (Catskill or Croton supply), which is filtered, ozonated, and continuously monitored upstream before
+    it reaches your tap. Local PFAS contamination sites in Westchester wouldn't directly affect
+    this supply, so your water source score is at significantly lower risk because of this.
+    <a href="https://www.nyc.gov/site/dep/about/drinking-water-supply-quality-report.page"
+       target="_blank" style="color:#1565c0;font-weight:600;display:inline-block;margin-top:6px;">
+       View NYC DEP Annual Water Quality Report →
+    </a>
+  </div>` : '';
 
 document.getElementById('sidebar-content').innerHTML=`
   <div class="score-hero ${d.level}">
@@ -177,6 +188,7 @@ document.getElementById('sidebar-content').innerHTML=`
     <div class="score-tier ${d.level}">${labels[d.level]}</div>
     <div class="score-summary">${summaries[d.level]}</div>
   </div>
+  ${nycdepNote}
   <div class="sec-block">
     <div class="sec-title">Score Breakdown</div>
     ${Object.entries(d.factors).map(([k,v])=>`
