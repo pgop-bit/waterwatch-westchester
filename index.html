@@ -82,7 +82,10 @@ footer{padding:2rem 4rem;border-top:1px solid var(--border);display:flex;align-i
 
 <nav>
   <div class="nav-logo"><span class="nav-dot"></span> WaterWatch Westchester</div>
-  <a class="nav-cta" href="tool.html">Check Your Risk →</a>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <a href="overview.html" style="font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;opacity:0.7;transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">County Overview</a>
+    <a class="nav-cta" href="tool.html">Check Your Risk →</a>
+  </div>
 </nav>
 
 <section class="hero">
@@ -154,7 +157,7 @@ footer{padding:2rem 4rem;border-top:1px solid var(--border);display:flex;align-i
     <div class="step-card" data-num="3">
       <div class="step-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 14l4-4 3 3 5-6"/></svg></div>
       <div class="step-title">Targeted resources</div>
-      <div class="step-desc">Based on your score and risk tier (High, Moderate, or Low), you're directed to appropriate resources: The NYS Rebate Program, professional labs, or certified filtration.</div>
+      <div class="step-desc">Based on your score and risk tier (High, Moderate, or Low), you're directed to appropriate resources: The NYS Rebate Program, professional labs, at-home kits, or certified filtration.</div>
     </div>
   </div>
 </section>
@@ -169,6 +172,29 @@ footer{padding:2rem 4rem;border-top:1px solid var(--border);display:flex;align-i
     <div class="data-card"><div><div class="data-title">Westchester County Land Use GIS</div><div class="data-desc">Parcel-level zoning, historical land use classification, and proximity to commercial/industrial zones.</div><div class="data-src">SOURCE: Westchester County GIS Services</div></div></div>
     <div class="data-card"><div><div class="data-title">NYS Drinking Water Watch</div><div class="data-desc">Public water system testing results and violation history, used to differentiate municipal supply risk from private well risk.</div><div class="data-src">SOURCE: health.ny.gov</div></div></div>
     <div class="data-card"><div><div class="data-title">DoD / FAA Airport AFFF Use Records</div><div class="data-desc">Aqueous Film Forming Foam usage records at military and civilian airports — the primary PFAS source near Westchester Airport.</div><div class="data-src">SOURCE: DoD PFAS Records, FAA Registry</div></div></div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="sec-label">Two Ways In</div>
+  <h2>Built for <em>residents and policymakers</em> alike.</h2>
+  <div class="two-col-data" style="margin-top:2.5rem;">
+    <div class="data-card" style="align-items:flex-start;">
+      <div class="data-icon" style="background:rgba(26,74,110,0.1);color:var(--water);">🏠</div>
+      <div>
+        <div class="data-title">For residents</div>
+        <div class="data-desc">Enter a single address and get a plain-language risk score, a breakdown of what's driving it, and next steps — from at-home test kits to certified labs.</div>
+        <a href="tool.html" style="display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:var(--water-light);text-decoration:none;">Check an address →</a>
+      </div>
+    </div>
+    <div class="data-card" style="align-items:flex-start;">
+      <div class="data-icon" style="background:rgba(230,126,34,0.1);color:var(--warn-light);">🗺️</div>
+      <div>
+        <div class="data-title">For policymakers</div>
+        <div class="data-desc">A county-wide heatmap ranks every town by exposure risk, so planners and legislators can spot high-risk clusters and prioritize monitoring without looking up addresses one at a time.</div>
+        <a href="overview.html" style="display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:var(--water-light);text-decoration:none;">Explore the county overview →</a>
+      </div>
+    </div>
   </div>
 </section>
 
