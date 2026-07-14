@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WaterWatch Westchester — County Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=DM+Mono:wght@400;500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ink:#0d1b0f;--paper:#f4f1eb;--water:#1a4a6e;--water-light:#2e7ab8;--danger:#8b2020;--danger-light:#c0392b;--warn:#7a4a00;--warn-light:#e67e22;--safe:#1a5c2e;--safe-light:#27ae60;--border:rgba(13,27,15,0.12);}
+html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--paper);color:var(--ink);overflow:hidden;}
+#layout{display:grid;grid-template-columns:1fr 400px;grid-template-rows:56px 1fr;height:100vh;}
+.topbar{grid-column:span 2;padding:0 2rem;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);}
+.topbar-logo{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.topbar-logo span{width:8px;height:8px;border-radius:50%;background:var(--water-light);display:inline-block}
+.topbar-tag{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:3px 9px;border:1px solid rgba(255,255,255,0.25);border-radius:20px;opacity:0.75;margin-left:10px;}
+.topbar-links{display:flex;align-items:center;gap:14px;}
+.topbar-back{font-size:12px;opacity:0.75;background:none;border:1px solid rgba(255,255,255,0.2);color:inherit;padding:6px 14px;border-radius:4px;font-family:'Nunito',sans-serif;transition:opacity 0.2s;text-decoration:none;}
+.topbar-back:hover{opacity:1}
+#map-container{grid-row:2;grid-column:1;position:relative;}
+#map{width:100%;height:100%;background:#e8e4da;}
+.map-controls{position:absolute;top:16px;left:16px;z-index:1000;background:rgba(244,241,235,0.97);border:1px solid var(--border);border-radius:8px;padding:14px 16px;backdrop-filter:blur(4px);max-width:230px;}
+.mc-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(13,27,15,0.45);margin-bottom:10px;}
+.mc-row{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;cursor:pointer;user-select:none;}
+.mc-row:last-child{margin-bottom:0}
+.mc-row input{accent-color:var(--water);width:14px;height:14px;cursor:pointer;}
+.map-legend{position:absolute;bottom:20px;left:16px;z-index:1000;background:rgba(244,241,235,0.97);border:1px solid var(--border);border-radius:8px;padding:12px 14px;backdrop-filter:blur(4px);}
+.legend-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;color:rgba(13,27,15,0.45)}
+.legend-grad{width:160px;height:10px;border-radius:3px;background:linear-gradient(90deg,#2e7ab8 0%,#27ae60 25%,#f1c40f 55%,#e67e22 75%,#c0392b 100%);margin-bottom:5px;}
+.legend-grad-labels{display:flex;justify-content:space-between;font-size:9px;color:rgba(13,27,15,0.5);font-family:'DM Mono',monospace;margin-bottom:10px;}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:5px;color:var(--ink)}
+.legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,0.15)}
+.legend-ring{width:11px;height:11px;border-radius:50%;flex-shrink:0;border:2px dashed var(--water-light);}
+#sidebar{grid-row:2;grid-column:2;background:var(--paper);border-left:1px solid var(--border);overflow-y:auto;height:calc(100vh - 56px);}
+.sb{padding:1.5rem}
+.sb-head h1{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;letter-spacing:-0.3px;margin-bottom:6px;}
+.sb-head p{font-size:12.5px;line-height:1.65;color:rgba(13,27,15,0.6);margin-bottom:1.5rem;}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(13,27,15,0.4);margin-bottom:10px;}
+.sec-block{margin-bottom:1.6rem}
+.summary-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1.6rem;}
+.stat-card{border:1px solid var(--border);border-radius:6px;padding:10px 8px;text-align:center;}
+.stat-num{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;line-height:1;}
+.stat-num.high{color:var(--danger-light)}.stat-num.medium{color:var(--warn-light)}.stat-num.low{color:var(--safe-light)}
+.stat-lbl{font-size:9px;color:rgba(13,27,15,0.5);font-weight:600;letter-spacing:0.4px;text-transform:uppercase;margin-top:4px;}
+.town-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;cursor:pointer;transition:background 0.15s;border:1px solid transparent;}
+.town-row:hover{background:rgba(26,74,110,0.06);border-color:var(--border)}
+.town-row.active{background:rgba(26,74,110,0.08);border-color:var(--water-light)}
+.town-rank{font-family:'DM Mono',monospace;font-size:10px;color:rgba(13,27,15,0.35);width:16px;flex-shrink:0;}
+.town-bar-wrap{flex:1;min-width:0}
+.town-name{font-size:12.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.dep-chip{font-size:8px;font-weight:700;letter-spacing:0.3px;background:rgba(46,122,184,0.12);color:var(--water);padding:1.5px 6px;border-radius:20px;border:1px solid rgba(46,122,184,0.25);}
+.town-track{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.town-fill{height:100%;border-radius:3px;}
+.town-score{font-family:'DM Mono',monospace;font-size:11px;min-width:26px;text-align:right;color:rgba(13,27,15,0.55);flex-shrink:0;}
+.methodology{font-size:11px;line-height:1.7;color:rgba(13,27,15,0.55);background:rgba(13,27,15,0.03);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+.methodology strong{color:var(--ink)}
+.disclaimer{font-size:10px;color:rgba(13,27,15,0.35);line-height:1.6;padding-top:1rem;border-top:1px solid var(--border);margin-top:1rem;}
+.tooltip-town{font-family:'Nunito',sans-serif !important;font-size:12px !important;border-radius:6px !important;}
+@media(max-width:900px){#layout{grid-template-columns:1fr;grid-template-rows:56px auto auto;overflow:auto;}body{overflow:auto}#map-container{min-height:420px;}#sidebar{height:auto;border-left:none;border-top:1px solid var(--border);}#map{min-height:420px;}}
+</style>
+</head>
+<body>
+
+<div id="layout">
+  <div class="topbar">
+    <div class="topbar-logo"><span></span>WaterWatch Westchester<span class="topbar-tag">County Overview</span></div>
+    <div class="topbar-links">
+      <a class="topbar-back" href="tool.html">Check my address →</a>
+      <a class="topbar-back" href="index.html">← Home</a>
+    </div>
+  </div>
+  <div id="map-container">
+    <div id="map"></div>
+    <div class="map-controls">
+      <div class="mc-title">Map Layers</div>
+      <label class="mc-row"><input type="checkbox" id="toggle-heat" checked> PFAS risk heatmap</label>
+      <label class="mc-row"><input type="checkbox" id="toggle-sites" checked> Known PFAS sites</label>
+      <label class="mc-row"><input type="checkbox" id="toggle-towns" checked> Town risk index</label>
+      <label class="mc-row"><input type="checkbox" id="toggle-dep"> NYC DEP aqueduct zones</label>
+    </div>
+    <div class="map-legend">
+      <div class="legend-title">Modeled PFAS Exposure Field</div>
+      <div class="legend-grad"></div>
+      <div class="legend-grad-labels"><span>Lower</span><span>Higher</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:#c0392b"></div>Known site (high severity)</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#e67e22"></div>Known site (med/low)</div>
+      <div class="legend-row"><div class="legend-ring"></div>NYC DEP aqueduct zone</div>
+    </div>
+  </div>
+  <div id="sidebar">
+    <div class="sb">
+      <div class="sb-head">
+        <h1>County-wide view</h1>
+        <p>A birds-eye look at PFAS exposure risk across Westchester. This page is useful for policymakers or planners who need the regional picture rather than a single property.</p>
+      </div>
+
+      <div class="summary-stats" id="summary-stats"></div>
+
+      <div class="sec-block">
+        <div class="sec-title">Towns Ranked by Land Contamination Proximity</div>
+        <div style="font-size:11.5px;line-height:1.6;color:rgba(13,27,15,0.55);margin-bottom:12px;">Ranks distance to known PFAS sites and watersheds. A <span class="dep-chip" style="vertical-align:1px;">DEP WATER</span> tag means municipal tap water there is filtered upstream and safer than this land-based rank implies; it doesn't mean the town has no nearby contamination, and some properties in these towns may still be on private wells.</div>
+        <div id="town-list"></div>
+      </div>
+
+      <div class="sec-block">
+        <div class="sec-title">Methodology</div>
+        <div class="methodology">
+          <strong>The town ranking and the DEP tag answer two different questions.</strong> The ranking measures proximity to known PFAS sites and watersheds only. This is a proxy for where contamination sources cluster, regardless of how any given property gets its water. The DEP tag flags towns where municipal tap water comes from the NYC DEP aqueduct (Catskill/Croton supply, which is filtered and monitored upstream), so a resident on that municipal line faces lower tap-water risk than the rank alone suggests. A town can carry both a high rank <em>and</em> the DEP tag: New Castle ranks high because of a known dry-cleaner PFAS cluster there, independent of its water supply. The DEP service radius is also an approximation, not a guarantee every property in it is off private wells.<br><br>
+          The <strong>heatmap</strong> is a modeled surface clipped to the county's actual boundary: risk is estimated at every point across Westchester using the same distance-weighted exposure factors, the same inputs as an address score, evaluated continuously rather than at one point. Each town's index uses the same factors, scaled to 0–100, and excludes home-specific inputs like water source and property age since those vary address to address.
+        </div>
+      </div>
+
+      <div class="disclaimer">WaterWatch Westchester provides risk estimates based on publicly available geospatial data. This overview is intended to support planning and outreach, not to replace certified laboratory testing or town-specific investigation. Data sources: NYS DEC, USEPA ECHO, USGS NHD, Westchester County GIS.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Shared data (mirrors tool.html) ───────────────────────────────────────
+const PFAS_SITES=[
+  {name:'Pound Ridge Industrial Site',lat:41.2101,lng:-73.5785,severity:'high',type:'Industrial discharge'},
+  {name:'Bedford Hills Contamination Zone',lat:41.2401,lng:-73.6998,severity:'high',type:'Historic AFFF use'},
+  {name:'Westchester County Airport (AFFF)',lat:41.0673,lng:-73.7076,severity:'high',type:'Airport AFFF foam'},
+  {name:'Yorktown Former Industrial',lat:41.2959,lng:-73.7887,severity:'medium',type:'Former manufacturing'},
+  {name:'Peekskill Industrial District',lat:41.2926,lng:-73.9196,severity:'medium',type:'Industrial discharge'},
+  {name:'New Castle Dry Cleaner Cluster',lat:41.1537,lng:-73.7715,severity:'medium',type:'PCE/PFAS dry cleaning'},
+  {name:'Somers Landfill Area',lat:41.3298,lng:-73.7090,severity:'medium',type:'Historic landfill'},
+  {name:'Cortlandt Military Site',lat:41.3215,lng:-73.9100,severity:'medium',type:'Former military use'},
+  {name:'Lewisboro Industrial Zone',lat:41.2632,lng:-73.5854,severity:'low',type:'Light industrial'},
+  {name:'Ossining WWTP Discharge',lat:41.1626,lng:-73.8671,severity:'low',type:'Wastewater discharge'},
+  {name:'North Salem Golf Course',lat:41.3415,lng:-73.6098,severity:'low',type:'Pesticide/PFAS turf'},
+  {name:'Mount Kisco Former Dry Cleaner',lat:41.2026,lng:-73.7271,severity:'low',type:'PCE/PFAS site'},
+];
+const WATER_BODIES=[
+  {name:'Cross River Reservoir',lat:41.2617,lng:-73.5945},{name:'Kensico Reservoir',lat:41.0748,lng:-73.7532},
+  {name:'Muscoot Reservoir',lat:41.3232,lng:-73.6748},{name:'Titicus Reservoir',lat:41.3487,lng:-73.6015},
+  {name:'Hudson River',lat:41.1500,lng:-73.9200},{name:'Byram River',lat:41.0626,lng:-73.6293},
+];
+// Confirmed town list: White Plains, Yonkers, Scarsdale, New Castle, Ossining,
+// North Salem, Mount Kisco.
+const NYC_DEP_ZONES=[
+  {name:'White Plains (NYC DEP)',centerLat:41.0340,centerLng:-73.7629,radiusKm:5},
+  {name:'Yonkers (NYC DEP)',centerLat:40.9312,centerLng:-73.8988,radiusKm:6},
+  {name:'Scarsdale (NYC DEP)',centerLat:40.989,centerLng:-73.783,radiusKm:3.5},
+  {name:'New Castle / Chappaqua (NYC DEP)',centerLat:41.1590,centerLng:-73.7715,radiusKm:4.5},
+  {name:'Ossining (NYC DEP)',centerLat:41.1626,centerLng:-73.8671,radiusKm:3.5},
+  {name:'North Salem (NYC DEP)',centerLat:41.3415,centerLng:-73.6098,radiusKm:4.5},
+  {name:'Mount Kisco (NYC DEP)',centerLat:41.2026,centerLng:-73.7271,radiusKm:2.5},
+];
+const TOWNS={
+  'bedford':{label:'Bedford',lat:41.2001,lng:-73.6554},
+  'pound-ridge':{label:'Pound Ridge',lat:41.2101,lng:-73.5785},
+  'north-castle':{label:'North Castle / Armonk',lat:41.1273,lng:-73.7132},
+  'lewisboro':{label:'Lewisboro / South Salem',lat:41.2632,lng:-73.5854},
+  'new-castle':{label:'New Castle / Chappaqua',lat:41.1590,lng:-73.7715},
+  'yorktown':{label:'Yorktown Heights',lat:41.2959,lng:-73.7887},
+  'somers':{label:'Somers',lat:41.3298,lng:-73.7090},
+  'cortlandt':{label:'Cortlandt Manor',lat:41.3215,lng:-73.9100},
+  'peekskill':{label:'Peekskill',lat:41.2926,lng:-73.9196},
+  'ossining':{label:'Ossining',lat:41.1626,lng:-73.8671},
+  'mount-pleasant':{label:'Mount Pleasant / Pleasantville',lat:41.1337,lng:-73.7938},
+  'harrison':{label:'Harrison / Rye',lat:40.9676,lng:-73.7126},
+  'white-plains':{label:'White Plains',lat:41.0340,lng:-73.7629},
+  'yonkers':{label:'Yonkers / Hastings',lat:40.9312,lng:-73.8988},
+  'mount-kisco':{label:'Mount Kisco / Bedford Hills',lat:41.2026,lng:-73.7271},
+  'scarsdale':{label:'Scarsdale',lat:40.9889,lng:-73.7832},
+  'north-salem':{label:'North Salem',lat:41.3415,lng:-73.6098},
+};
+function distKm(a,b,c,e){const R=6371,dL=(c-a)*Math.PI/180,dN=(e-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dN/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function isNYCDEPZone(lat,lng){return NYC_DEP_ZONES.some(z=>distKm(lat,lng,z.centerLat,z.centerLng)<=z.radiusKm);}
+
+// ─── Actual Westchester County boundary (US Census TIGER cartographic bounds) ──
+// MultiPolygon coordinates, [lng,lat] per GeoJSON convention. Used to clip the
+// heat field and grid points to the real county shape instead of a bounding box.
+const WESTCHESTER_COORDS=[[[[-73.767176,40.886299],[-73.767076,40.885399],[-73.767076,40.884799],[-73.767076,40.883499],[-73.766276,40.881099],[-73.766976,40.880099],[-73.770876,40.879299],[-73.775276,40.882199],[-73.775176,40.884199],[-73.772776,40.884599],[-73.772276,40.887499],[-73.770576,40.888399],[-73.768276,40.887599],[-73.767276,40.886899],[-73.767176,40.886299]]],[[[-73.514617,41.198434],[-73.614407,41.153001],[-73.632153,41.144921],[-73.639672,41.141495],[-73.727775,41.100696],[-73.694273,41.059296],[-73.687173,41.050697],[-73.679973,41.041797],[-73.670472,41.030097],[-73.655371,41.012797],[-73.654671,41.011697],[-73.657336,40.985171],[-73.655972,40.979597],[-73.659972,40.968398],[-73.662072,40.966198],[-73.664472,40.967198],[-73.678073,40.962798],[-73.683273,40.948998],[-73.686473,40.945198],[-73.697974,40.939598],[-73.721739,40.932037],[-73.731775,40.924999],[-73.756776,40.912599],[-73.781338,40.885447],[-73.783545,40.88104],[-73.804789,40.886505],[-73.806395,40.886801],[-73.823244,40.891199],[-73.82312,40.890648],[-73.823617,40.890413],[-73.823557,40.889865],[-73.824047,40.889866],[-73.917905,40.917577],[-73.893979,40.997197],[-73.88938,41.037597],[-73.8947,41.069937],[-73.89488,41.082396],[-73.88718,41.133095],[-73.895381,41.153995],[-73.909281,41.164395],[-73.931482,41.204994],[-73.947965,41.223101],[-73.982584,41.321693],[-73.544728,41.366375],[-73.550961,41.295422],[-73.482709,41.21276],[-73.509487,41.200814],[-73.514617,41.198434]]]];
+
+function pointInRing(lat,lng,ring){
+  let inside=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+    const intersect=((yi>lat)!==(yj>lat)) && (lng < (xj-xi)*(lat-yi)/(yj-yi)+xi);
+    if(intersect)inside=!inside;
+  }
+  return inside;
+}
+function inWestchesterPoly(lat,lng){
+  return WESTCHESTER_COORDS.some(poly=>pointInRing(lat,lng,poly[0]));
+}
+let W_MINLAT=90,W_MAXLAT=-90,W_MINLNG=180,W_MAXLNG=-180;
+WESTCHESTER_COORDS.forEach(poly=>poly[0].forEach(([lng,lat])=>{
+  if(lat<W_MINLAT)W_MINLAT=lat; if(lat>W_MAXLAT)W_MAXLAT=lat;
+  if(lng<W_MINLNG)W_MINLNG=lng; if(lng>W_MAXLNG)W_MAXLNG=lng;
+}));
+
+// Environmental Exposure Index — town-level, excludes address-specific factors
+function townIndex(lat,lng){
+  let ss=0;
+  PFAS_SITES.forEach(s=>{
+    const d=distKm(lat,lng,s.lat,s.lng);
+    if(d<1)ss+=s.severity==='high'?30:s.severity==='medium'?20:10;
+    else if(d<3)ss+=s.severity==='high'?20:s.severity==='medium'?12:6;
+    else if(d<8)ss+=s.severity==='high'?10:s.severity==='medium'?6:3;
+    else if(d<15)ss+=s.severity==='high'?4:s.severity==='medium'?2:1;
+  });
+  const pfasSites=Math.min(35,ss);
+  let ws=0;WATER_BODIES.forEach(w=>{const d=distKm(lat,lng,w.lat,w.lng);if(d<1)ws+=8;else if(d<3)ws+=4;else if(d<6)ws+=2;});
+  const watershed=Math.min(8,ws);
+  const scaled=Math.round((pfasSites+watershed)*100/43);
+  return {score:scaled,level:scaled>=55?'high':scaled>=30?'medium':'low'};
+}
+
+const barColor={high:'#c0392b',medium:'#e67e22',low:'#27ae60'};
+const townResults=Object.entries(TOWNS).map(([key,t])=>({key,...t,...townIndex(t.lat,t.lng),isDEP:isNYCDEPZone(t.lat,t.lng)}))
+  .sort((a,b)=>b.score-a.score);
+
+// ─── Summary stats ──────────────────────────────────────────────────────────
+const counts={high:0,medium:0,low:0};
+townResults.forEach(t=>counts[t.level]++);
+document.getElementById('summary-stats').innerHTML=`
+  <div class="stat-card"><div class="stat-num high">${counts.high}</div><div class="stat-lbl">High-index towns</div></div>
+  <div class="stat-card"><div class="stat-num medium">${counts.medium}</div><div class="stat-lbl">Moderate</div></div>
+  <div class="stat-card"><div class="stat-num low">${counts.low}</div><div class="stat-lbl">Lower</div></div>
+`;
+
+// ─── Town list ──────────────────────────────────────────────────────────────
+document.getElementById('town-list').innerHTML=townResults.map((t,i)=>`
+  <div class="town-row" data-key="${t.key}" onclick="focusTown('${t.key}')">
+    <span class="town-rank">${i+1}</span>
+    <div class="town-bar-wrap">
+      <div class="town-name">${t.label}${t.isDEP?'<span class="dep-chip" title="Municipal tap water here is NYC DEP aqueduct-sourced, so tap risk is lower than this land-based rank shows. Nearby land can still have known contamination, and some homes here may be on private wells.">DEP WATER</span>':''}</div>
+      <div class="town-track"><div class="town-fill" style="width:${t.score}%;background:${barColor[t.level]}"></div></div>
+    </div>
+    <span class="town-score">${t.score}</span>
+  </div>`).join('');
+
+// ─── Map ────────────────────────────────────────────────────────────────────
+const map=L.map('map',{scrollWheelZoom:true}).setView([41.155,-73.76],11);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
+
+// ─── Continuous county-wide risk field (canvas raster) ─────────────────────
+// Rather than plotting discrete heat blobs at sample points (which tile into
+// a visible grid once spacing approaches the blur radius), we evaluate the
+// risk function at every output pixel directly and paint a canvas — a true
+// continuous field, clipped to the county's actual boundary polygon, then
+// dropped onto the map as a single image layer.
+const sevWeight={high:1.0,medium:0.62,low:0.36};
+const SITE_SIGMA=2.6;   // km — controls how quickly site influence fades
+const WATER_SIGMA=3.2;  // km
+
+function fieldValue(lat,lng){
+  let v=0;
+  PFAS_SITES.forEach(s=>{
+    const d=distKm(lat,lng,s.lat,s.lng);
+    v+=sevWeight[s.severity]*Math.exp(-(d*d)/(2*SITE_SIGMA*SITE_SIGMA));
+  });
+  WATER_BODIES.forEach(w=>{
+    const d=distKm(lat,lng,w.lat,w.lng);
+    v+=0.18*Math.exp(-(d*d)/(2*WATER_SIGMA*WATER_SIGMA));
+  });
+  return v;
+}
+
+// 5-stop color ramp, interpolated smoothly per-pixel (no banding)
+const RAMP=[
+  {t:0.00,c:[46,122,184]},   // blue
+  {t:0.25,c:[39,174,96]},    // green
+  {t:0.50,c:[241,196,15]},   // yellow
+  {t:0.72,c:[230,126,34]},   // orange
+  {t:1.00,c:[192,57,43]},    // red
+];
+function rampColor(t){
+  t=Math.max(0,Math.min(1,t));
+  for(let i=0;i<RAMP.length-1;i++){
+    const a=RAMP[i],b=RAMP[i+1];
+    if(t>=a.t&&t<=b.t){
+      const f=(t-a.t)/(b.t-a.t);
+      return [
+        Math.round(a.c[0]+(b.c[0]-a.c[0])*f),
+        Math.round(a.c[1]+(b.c[1]-a.c[1])*f),
+        Math.round(a.c[2]+(b.c[2]-a.c[2])*f),
+      ];
+    }
+  }
+  return RAMP[RAMP.length-1].c;
+}
+
+const latExtent=W_MAXLAT-W_MINLAT, lngExtent=W_MAXLNG-W_MINLNG;
+const meanLatRad=(W_MINLAT+W_MAXLAT)/2*Math.PI/180;
+const RASTER_H=520;
+const RASTER_W=Math.round(RASTER_H*(lngExtent*Math.cos(meanLatRad))/latExtent);
+
+const canvas=document.createElement('canvas');
+canvas.width=RASTER_W; canvas.height=RASTER_H;
+const ctx=canvas.getContext('2d');
+const img=ctx.createImageData(RASTER_W,RASTER_H);
+
+// Pass 1: evaluate the field + find max for normalization
+const raw=new Float32Array(RASTER_W*RASTER_H);
+const inside=new Uint8Array(RASTER_W*RASTER_H);
+let maxV=0;
+for(let py=0;py<RASTER_H;py++){
+  const lat=W_MAXLAT-(py/(RASTER_H-1))*latExtent;
+  for(let px=0;px<RASTER_W;px++){
+    const lng=W_MINLNG+(px/(RASTER_W-1))*lngExtent;
+    const idx=py*RASTER_W+px;
+    if(inWestchesterPoly(lat,lng)){
+      inside[idx]=1;
+      const v=fieldValue(lat,lng);
+      raw[idx]=v;
+      if(v>maxV)maxV=v;
+    }
+  }
+}
+// Pass 2: normalize (with a floor so the whole county reads as covered,
+// not just hotspots) and paint
+const FLOOR=0.16;
+for(let i=0;i<RASTER_W*RASTER_H;i++){
+  const o=i*4;
+  if(!inside[i]){ img.data[o+3]=0; continue; }
+  const t=FLOOR+(1-FLOOR)*Math.min(1,raw[i]/(maxV*0.85));
+  const [r,g,b]=rampColor(t);
+  img.data[o]=r; img.data[o+1]=g; img.data[o+2]=b;
+  img.data[o+3]=Math.round(255*(0.42+0.4*t)); // subtler where low-risk, richer where high
+}
+ctx.putImageData(img,0,0);
+
+const heatOverlay=L.imageOverlay(canvas.toDataURL(),
+  [[W_MINLAT,W_MINLNG],[W_MAXLAT,W_MAXLNG]],
+  {opacity:1,interactive:false}
+).addTo(map);
+
+// True county outline, drawn on top so the field reads as clipped to it
+L.geoJSON({type:'MultiPolygon',coordinates:WESTCHESTER_COORDS},{
+  style:{color:'#0d1b0f',weight:1.5,opacity:0.45,fill:false}
+}).addTo(map);
+
+// Known site markers
+const siteLayer=L.layerGroup();
+PFAS_SITES.forEach(s=>{
+  const col=s.severity==='high'?'#c0392b':s.severity==='medium'?'#e67e22':'#f39c12';
+  const r=s.severity==='high'?8:6;
+  const icon=L.divIcon({html:`<div style="width:${r*2}px;height:${r*2}px;background:${col};opacity:0.9;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`,iconSize:[r*2,r*2],iconAnchor:[r,r],className:''});
+  L.marker([s.lat,s.lng],{icon}).bindPopup(`<strong>${s.name}</strong><br><small>${s.type}</small><br><small style="color:${col};font-weight:600">${s.severity.toUpperCase()} severity</small>`).addTo(siteLayer);
+});
+siteLayer.addTo(map);
+
+// Town markers (Environmental Exposure Index)
+const townLayer=L.layerGroup();
+const townMarkers={};
+townResults.forEach(t=>{
+  const col=barColor[t.level];
+  const icon=L.divIcon({html:`<div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;">
+      <div style="width:14px;height:14px;background:${col};border:2.5px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.35)"></div>
+    </div>`,iconSize:[14,14],iconAnchor:[7,7],className:''});
+  const m=L.marker([t.lat,t.lng],{icon}).bindTooltip(`<strong>${t.label}</strong><br>Exposure Index: ${t.score}/100 (${t.level})${t.isDEP?'<br><em>NYC DEP aqueduct area</em>':''}`,{className:'tooltip-town',direction:'top',offset:[0,-6]});
+  m.addTo(townLayer);
+  townMarkers[t.key]=m;
+});
+townLayer.addTo(map);
+
+// NYC DEP zone overlays (off by default)
+const depLayer=L.layerGroup();
+NYC_DEP_ZONES.forEach(z=>{
+  L.circle([z.centerLat,z.centerLng],{radius:z.radiusKm*1000,color:'#2e7ab8',weight:1.5,dashArray:'6 5',fillColor:'#2e7ab8',fillOpacity:0.05}).bindPopup(`<strong>${z.name}</strong><br><small>Municipal water in this zone is sourced from the NYC DEP aqueduct (filtered & monitored upstream).</small>`).addTo(depLayer);
+});
+
+// Toggles
+document.getElementById('toggle-heat').addEventListener('change',e=>e.target.checked?heatOverlay.addTo(map):map.removeLayer(heatOverlay));
+document.getElementById('toggle-sites').addEventListener('change',e=>e.target.checked?siteLayer.addTo(map):map.removeLayer(siteLayer));
+document.getElementById('toggle-towns').addEventListener('change',e=>e.target.checked?townLayer.addTo(map):map.removeLayer(townLayer));
+document.getElementById('toggle-dep').addEventListener('change',e=>e.target.checked?depLayer.addTo(map):map.removeLayer(depLayer));
+
+function focusTown(key){
+  document.querySelectorAll('.town-row').forEach(el=>el.classList.toggle('active',el.dataset.key===key));
+  const t=TOWNS[key];
+  map.flyTo([t.lat,t.lng],13,{duration:0.8});
+  const m=townMarkers[key];
+  if(m) setTimeout(()=>m.openTooltip(),850);
+}
+</script>
+</body>
+</html>
