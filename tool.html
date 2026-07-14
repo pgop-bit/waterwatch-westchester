@@ -65,6 +65,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1rem 2.5rem;display:
 
 <nav>
   <div class="nav-logo"><span class="nav-dot"></span> WaterWatch Westchester</div>
+  <a href="overview.html" style="font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;opacity:0.7;">County Overview →</a>
 </nav>
 
 <!-- FORM -->
@@ -108,6 +109,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1rem 2.5rem;display:
           <option value="white-plains">White Plains</option>
           <option value="yonkers">Yonkers / Hastings</option>
           <option value="mount-kisco">Mount Kisco / Bedford Hills</option>
+          <option value="scarsdale">Scarsdale</option>
+          <option value="north-salem">North Salem</option>
         </select>
       </div>
     </div>
@@ -184,20 +187,16 @@ const appState = {lat:null,lng:null,address:'',waterSource:null,homeAge:null,nea
 // These towns receive treated NYC DEP aqueduct water (Catskill/Croton systems).
 // Municipal water in these zones has near-zero local PFAS risk at the tap —
 // the supply is filtered and monitored upstream, not drawn from local groundwater.
-// Source: Village of Pleasantville 2025 AWQR; New Castle Water System reports.
+// Confirmed town list: White Plains, Yonkers, Scarsdale, New Castle, Ossining,
+// North Salem, Mount Kisco.
 const NYC_DEP_ZONES = [
-  // New Castle / Chappaqua / Millwood / Pleasantville
-  { name: 'New Castle / Pleasantville (NYC DEP Catskill/Croton)', centerLat: 41.159, centerLng: -73.771, radiusKm: 6 },
-  // Scarsdale
+  { name: 'White Plains (NYC DEP)', centerLat: 41.0340, centerLng: -73.7629, radiusKm: 5 },
+  { name: 'Yonkers (NYC DEP)', centerLat: 40.9312, centerLng: -73.8988, radiusKm: 6 },
   { name: 'Scarsdale (NYC DEP)', centerLat: 40.989, centerLng: -73.783, radiusKm: 3.5 },
-  // Ardsley / Dobbs Ferry / Tarrytown corridor
-  { name: 'Ardsley–Tarrytown corridor (NYC DEP)', centerLat: 41.022, centerLng: -73.845, radiusKm: 5 },
-  // Yonkers (southern portion, NYC DEP)
-  { name: 'Yonkers South (NYC DEP)', centerLat: 40.935, centerLng: -73.890, radiusKm: 4 },
-  // Bronxville / Tuckahoe / Eastchester
-  { name: 'Bronxville–Eastchester (NYC DEP)', centerLat: 40.951, centerLng: -73.820, radiusKm: 3.5 },
-  // Mount Vernon (NYC DEP)
-  { name: 'Mount Vernon (NYC DEP)', centerLat: 40.913, centerLng: -73.830, radiusKm: 3 },
+  { name: 'New Castle / Chappaqua (NYC DEP)', centerLat: 41.1590, centerLng: -73.7715, radiusKm: 4.5 },
+  { name: 'Ossining (NYC DEP)', centerLat: 41.1626, centerLng: -73.8671, radiusKm: 3.5 },
+  { name: 'North Salem (NYC DEP)', centerLat: 41.3415, centerLng: -73.6098, radiusKm: 4.5 },
+  { name: 'Mount Kisco (NYC DEP)', centerLat: 41.2026, centerLng: -73.7271, radiusKm: 2.5 },
 ];
 
 function isNYCDEPZone(lat, lng) {
@@ -221,6 +220,8 @@ const TOWNS = {
   'white-plains':{label:'White Plains',lat:41.0340,lng:-73.7629},
   'yonkers':{label:'Yonkers / Hastings',lat:40.9312,lng:-73.8988},
   'mount-kisco':{label:'Mount Kisco / Bedford Hills',lat:41.2026,lng:-73.7271},
+  'scarsdale':{label:'Scarsdale',lat:40.9889,lng:-73.7832},
+  'north-salem':{label:'North Salem',lat:41.3415,lng:-73.6098},
 };
 
 const NEIGHBORHOODS = {
@@ -239,6 +240,8 @@ const NEIGHBORHOODS = {
   'white-plains':[{label:'White Plains center',lat:41.0340,lng:-73.7629},{label:'Greenburgh',lat:41.0476,lng:-73.8354}],
   'yonkers':[{label:'Yonkers center',lat:40.9312,lng:-73.8988},{label:'Hastings-on-Hudson',lat:40.9901,lng:-73.8793}],
   'mount-kisco':[{label:'Mount Kisco center',lat:41.2026,lng:-73.7271},{label:'Bedford Hills',lat:41.2401,lng:-73.6998}],
+  'scarsdale':[{label:'Scarsdale center',lat:40.9889,lng:-73.7832},{label:'Fox Meadow',lat:40.9954,lng:-73.7887},{label:'Greenacres',lat:40.9812,lng:-73.8054}],
+  'north-salem':[{label:'North Salem center',lat:41.3415,lng:-73.6098},{label:'Croton Falls',lat:41.3287,lng:-73.6432},{label:'Purdys',lat:41.3187,lng:-73.6543}],
 };
 
 // Westchester County bounding box (with a small buffer on all sides)
