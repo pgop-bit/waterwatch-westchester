@@ -402,12 +402,21 @@ function computeScore(){
   const {lat,lng,waterSource,homeAge,nearby,isNYCDEP}=appState;
   let f={};
   let ss=0,closest=null,closestD=Infinity;
-  PFAS_SITES.forEach(s=>{const d=distKm(lat,lng,s.lat,s.lng);if(d<closestD){closestD=d;closest=s;}
-    if(d<1)ss+=s.severity==='high'?30:s.severity==='medium'?20:10;
-    else if(d<3)ss+=s.severity==='high'?20:s.severity==='medium'?12:6;
-    else if(d<8)ss+=s.severity==='high'?10:s.severity==='medium'?6:3;
-    else if(d<15)ss+=s.severity==='high'?4:s.severity==='medium'?2:1;
+  const contributingSites=[];
+  PFAS_SITES.forEach(s=>{
+    const d=distKm(lat,lng,s.lat,s.lng);
+    if(d<closestD){closestD=d;closest=s;}
+    let pts=0;
+    if(d<1)pts=s.severity==='high'?30:s.severity==='medium'?20:10;
+    else if(d<3)pts=s.severity==='high'?20:s.severity==='medium'?12:6;
+    else if(d<8)pts=s.severity==='high'?10:s.severity==='medium'?6:3;
+    else if(d<15)pts=s.severity==='high'?4:s.severity==='medium'?2:1;
+    if(pts>0){
+      ss+=pts;
+      contributingSites.push({name:s.name,type:s.type,severity:s.severity,dist:d,points:pts});
+    }
   });
+  contributingSites.sort((a,b)=>b.points-a.points||a.dist-b.dist);
   f.pfasSites=Math.min(35,ss);
 
   // NYC DEP aqueduct water is filtered and monitored at the source —
@@ -422,7 +431,7 @@ function computeScore(){
   let ws=0;WATER_BODIES.forEach(w=>{const d=distKm(lat,lng,w.lat,w.lng);if(d<1)ws+=8;else if(d<3)ws+=4;else if(d<6)ws+=2;});
   f.watershed=Math.min(8,ws);
   const total=Math.min(100,Math.round(f.pfasSites+f.waterSource+f.homeAge+f.nearbyUses+f.watershed));
-  return {score:total,level:total>=55?'high':total>=30?'medium':'low',factors:f,closestSite:closest,closestDist:closestD.toFixed(1),isNYCDEP:!!isNYCDEP};
+  return {score:total,level:total>=55?'high':total>=30?'medium':'low',factors:f,closestSite:closest,closestDist:closestD.toFixed(1),isNYCDEP:!!isNYCDEP,contributingSites:contributingSites};
 }
 
 function runAnalysis(){
